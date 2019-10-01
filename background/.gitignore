@@ -1,0 +1,4 @@
+#ignores files - wild car *.txt *.csv etc
+
+*.csv
+literature
