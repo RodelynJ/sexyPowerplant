@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1578446536825.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "FDAFA240",
+    "lastKnownWriteTime" : 1578517881,
+    "last_content_update" : 1578517881224,
+    "path" : "C:/ALCM/Peter Lo/Analysis_Rodelyn/Code/Models/Model_comparison_region.R",
+    "project_path" : "Code/Models/Model_comparison_region.R",
+    "properties" : {
+        "cursorPosition" : "162,82",
+        "scrollLine" : "0",
+        "tempName" : "Untitled7"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

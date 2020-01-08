@@ -1,0 +1,57 @@
+---
+title: "ALCM preditive modelling"
+author: "Rodelyn Jaksons"
+date: "06/12/2019"
+output:
+  word_document:
+    reference_docx: C:/Program Files (x86)/Microsoft Office/Templates/Office.2013/Plant_and_Food_Research/PFR_Basic_Science_Report_Template.dotm
+  html_document: default  
+
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+knitr::opts_chunk$set(echo = TRUE)
+load("C:/ALCM/Peter Lo/Analysis_Rodelyn/Code/R workspace/orchard_analysis_WS.RData")
+```
+
+## Modelling Overview
+
+In this work, we have used several machine learning algorithms to predict the peak timings of ALCM emergence. They include regression trees, random forests and support vector machine (SVM) regression. The analysis was conducted using the R! software.\
+
+
+We have are also in the process of comparing their performance to see which algorithm would be best at prediction.\
+
+
+The models take into account growing degree days (GDD), climatic information such as temperature and leaf wetness. 
+
+
+## Modelling Results
+The plots below show the prediction results from the regression tree model of the last five years. In these plots, the black lines are of the weekly ALCM count by orchard, while the red lines are the predicted counts.\
+
+The models do well for a number of orchards, however for some the model performance can be improved. The poor results could be attributed to the fact that some orchards did not have enough data, or there are factors that are specific to the orchard that has not been accounted for. 
+
+```{r results count,echo=F}
+
+ggplot(traps_DF[traps_DF$Season2 %in% 11,], aes(x=monitoring_week, y=ALCM_count, group=Orchard)) + geom_line() +
+  facet_wrap(~Orchard) + geom_line(aes(x=monitoring_week, y=tree_pred, group=Orchard),col="red") +
+  ggtitle("2014-2015")
+
+ggplot(traps_DF[traps_DF$Season2 %in% 12,], aes(x=monitoring_week, y=ALCM_count, group=Orchard)) + geom_line() +
+  facet_wrap(~Orchard) + geom_line(aes(x=monitoring_week, y=tree_pred, group=Orchard),col="red") +
+  ggtitle("2015-2016")
+
+ggplot(traps_DF[traps_DF$Season2 %in% 13,], aes(x=monitoring_week, y=ALCM_count, group=Orchard)) + geom_line() +
+  facet_wrap(~Orchard) + geom_line(aes(x=monitoring_week, y=tree_pred, group=Orchard),col="red")+
+  ggtitle("2016-2017")
+
+ggplot(traps_DF[traps_DF$Season2 %in% 14,], aes(x=monitoring_week, y=ALCM_count, group=Orchard)) + geom_line() +
+  facet_wrap(~Orchard) + geom_line(aes(x=monitoring_week, y=tree_pred, group=Orchard),col="red")+
+  ggtitle("2017-2018")
+
+ggplot(traps_DF[traps_DF$Season2 %in% 15,], aes(x=monitoring_week, y=ALCM_count, group=Orchard)) + geom_line() +
+  facet_wrap(~Orchard) + geom_line(aes(x=monitoring_week, y=tree_pred, group=Orchard),col="red")+
+  ggtitle("2018-2019")
+
+```
+

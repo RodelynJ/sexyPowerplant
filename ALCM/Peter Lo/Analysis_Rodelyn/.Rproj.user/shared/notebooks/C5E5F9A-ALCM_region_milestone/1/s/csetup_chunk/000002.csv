@@ -1,0 +1,4 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","load(""C:/ALCM/Peter Lo/Analysis_Rodelyn/Output/ALCM_region_output.RData"")"
+"0",""
+"0","library(dplyr)"

@@ -1,0 +1,131 @@
+---
+title: "ALCM Report"
+author: "Rodelyn Jaksons"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: 
+ word_document:
+  reference_docx: C:/Program Files (x86)/Microsoft Office/Templates/Office.2013/Plant_and_Food_Research/PFR_Basic_Science_Report_Template.dotm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+load("C:/ALCM/Peter Lo/Analysis_Rodelyn/Output/ALCM_region_output.RData")
+
+library(dplyr)
+library(ggplot2)
+```
+
+## Data pre-processing
+
+### Trap captures
+
+
+
+The trap counts for each orchard were aggregated to weekly counts based on the calendar week in which it was collected. This was then averaged by region. As the number of ALCM may be proportional to the effort, the number of traps laid in that week were also accounted for. Therefore the capture rate for each week analysed. The capture rate is defined as:\
+
+$$r_{tk} = \frac{y_{tk}}{n_{traps }} $$
+
+Where $r$ is the capture rate for the week, $y_t$ is the number of captures for the week, k is the growing season,  and $n_{traps}$ are the number of traps laid.\
+
+
+To make the capture rates comparible between orchards and growing seasons, the capture rate was normalised. The normalised capture rate is given by:\
+
+$$\tilde{r}_{tk} = \frac{r_{tk}}{sd(\mathbf{r_k})}$$
+
+The normalisation is demonstrated for the Nelson 2018-19 growing season. The first row, shows the raw capture rate, while the second row is of the normalised capture rate. It can be seen that normalisation leaves the peaks unaffected.
+
+```{r norm, echo=F, out.width="0.1%"}
+traps_DF3 <- traps_DF %>% group_by(Region, Season,Season2, week_diff) %>%
+  summarise(rate = mean(rate),
+            rate_norm = mean(rate_norm),
+            mean_rate = mean(mean_rate),
+            mean_temp = mean(mean_temp, na.rm=T),
+            mean_RF = mean(total_rainfall, na.rm=T),
+            mean_CGDD = mean(CGDD), 
+            mean_lagtemp = mean(lag_temp, na.rm=T),
+            mean_lagrain = mean(lag_rain, na.rm=T)) %>% as.data.frame()
+
+Nelson <- traps_DF3[traps_DF3$Region %in% "Nelson" & traps_DF3$Season2 %in% 15,]
+par(mfrow=c(1,2))
+plot(Nelson$week_diff, Nelson$rate, type="l", ylab="Rate",xlab="Week")
+plot(Nelson$week_diff, Nelson$rate_norm, type="l",ylab="Normalised Rate",xlab="Week")
+
+```
+
+
+### Predictors
+
+A start date of the 1st of July was used to calculate growing degree days with a base temperature of 7$^{\circ}$C. The models also used meterological predictors such as average weekly temperature and total weekly rainfall. The meterological data was obtained from HortPlus.\
+
+As the data varies temporally, an important predictor is what occured previously, which is known as the lag predictor. However, the use of a lag predictor means that one is only able to forecast one week ahead. Therefore to cicumvent this, we use historical data to find the average of capture rate of the week question, and use it as a predictor in the model.
+
+
+## Methods
+
+We investigated a number of machine learning algorithms to see if a one algorithm would be best to for prediction, or if an ensemble of models would be better for forecasting. The models comprised of regression trees, random forests, support vector machine (SVM) regression, and gradient boosting machine (GBM). \
+
+### Regression trees
+
+Regression trees recursively partition the variable space, thereby creating a set of rectangles. In each partition a linear regression model is fitted in each one. The resulting tree is based on the different partition combination which best describes the observed process. Regression trees have been successfully used across many disciplines for modelling and prediction. However, regression trees are known to suffer from instability, as small changes in the data can yield different trees.\
+
+### Random forest
+
+Random forest, are extensions of regression trees and addresses the instability that a single tree faces. In a random forest model, the same tree is fitted to bootstrapped sample versions of the training data. The predictions are based on a average of many trees.\
+
+### Support vector machines
+
+SVMs uses hyperplanes for prediction. In an SVM, the hyperplane acts as a classifier which best describes the data, thus separating the observations into their respective groups.\
+
+### Gradient boosting machine
+
+GBM's are similar to random forests. However, unlike a random forest where a many trees are bulit independent of each other, GBM's build each tree sequentially. In a GBM the aim of each new tree is to improve the previous tree's weaknesses.\
+
+## Model Evaluation
+
+To evaluate model performance we use $k-fold$ cross validation. In $k-fold$ cross validation, the data set is partitioned into a traning set and testing set. The training set is used to build the model, where the model is then used to obtain the prediction error in the testing set. \
+
+The cross validation error rate for $k-fold cross$ validation is given by\
+
+$$CV_{(k)} = \frac{1}{k} \sum_{i=1}^{k} (y_k - y_k^{(-k)})^2.$$
+
+where $i$ is the test fold and $k$ is the number of folds. In our case the folds were defined by season. The model performances were also inspected visually, to see if they predicted dynamics could reasonably explain the data.
+
+## Results
+
+The table below shows the cross validation error rate for the different models by region, where the lower error is preferred. For Central Otago and Hawke's Bay, the random forest and GBM performed the best. For the Nelson region the  SVM and GBM models were superior.\
+
+```{r CVER, echo=F}
+pred_df <- data.frame(Season=traps_DF2$Season, Region= traps_DF2$Region, rate_norm=traps_DF2$rate_norm, week_diff=traps_DF2$week_diff,
+                      pred_tree = tree_pred_DF$pred_ratenorm, pred_RF=RF_pred_DF$pred_ratenorm, pred_SVM =SVM_pred_DF$pred_ratenorm, pred_gbm = gbm_pred_DF$pred_ratenorm)
+
+
+prederror <- pred_df %>% group_by(Region, Season) %>%
+  mutate(error_tree = (rate_norm - pred_tree)^2 ,
+         error_RF = (rate_norm - pred_RF)^2,
+         error_SVM = (rate_norm - pred_SVM)^2,
+         error_GBM = (rate_norm - pred_gbm)^2 ) %>% as.data.frame()
+
+CVER <- matrix(NA, nrow=3,ncol=5, dimnames=list(NULL, c("Region","Regression Tree","Random Forest","SVM","GBM")))
+  
+CVER[,1] <- c("Central Otago", "Hawke's Bay","Nelson")
+CVER[,2] <- signif(as.numeric(tapply(prederror$error_tree, pred_df$Region, function(x) 0.5*sum(x))),3)
+CVER[,3] <- signif(as.numeric(tapply(prederror$error_RF, pred_df$Region, function(x) 0.5*sum(x))),3)
+CVER[,4] <- signif(as.numeric(tapply(prederror$error_SVM, pred_df$Region, function(x) 0.5*sum(x))),3)
+CVER[,5] <- signif(as.numeric(tapply(prederror$error_GBM, pred_df$Region, function(x) 0.5*sum(x))),3)
+
+knitr::kable(CVER)
+
+
+```
+
+
+The plots below show the performance of each model. The black lines are the observed captures, while the red are the model predictions. In general the models can adequately describe the emergence dynamics.\
+
+
+```{r resultsplots, echo=F, out.width="50%"}
+
+tree_rate_plots + ggtitle("Regression Tree") +xlab("week") + ylab("Normalised Rate")
+RF_rate_plots + ggtitle("Random Forest")+xlab("week") + ylab("Normalised Rate")
+SVM_rate_plots + ggtitle("SVM")+xlab("week") + ylab("Normalised Rate")
+GBM_rate_plots + ggtitle("GBM")+xlab("week") + ylab("Normalised Rate")
+```
